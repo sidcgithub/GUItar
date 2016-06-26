@@ -64,12 +64,14 @@ public class MainActivity extends Activity {
     {
         File dir = getFilesDir();
 
-            IoUtils.extractZipResource(getResources().openRawResource(R.raw.trial7),dir,true);
+        IoUtils.extractZipResource(getResources().openRawResource(R.raw.trial8), dir, true);
 
 
-        File pdPatch = new File(dir, "trial7.pd");
+        File pdPatch = new File(dir, "trial8.pd");
 
-            PdBase.openPatch(pdPatch.getAbsolutePath());
+        PdBase.openPatch(pdPatch.getAbsolutePath());
+
+
 
 
     }
@@ -120,6 +122,27 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+
+
+        PdBase.release();
+        dispatcher.release();
+
+
+
+        try {
+            initPD();
+            loadPDPatch();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+        if(PdAudio.isRunning())
+        {
+
+            PdAudio.stopAudio();
+        }
         PdAudio.startAudio(this);
     }
 
@@ -127,60 +150,40 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         PdAudio.stopAudio();
+
+    }
+
+    protected void onStop()
+    {
+        super.onStop();
+        PdAudio.stopAudio();
+        PdBase.release();
+        dispatcher.release();
     }
 
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_MOVE || event.getAction() == MotionEvent.ACTION_DOWN) {
+
+        event.getActionIndex();
+        if (event.getAction() == MotionEvent.ACTION_MOVE || event.getAction() == MotionEvent.ACTION_DOWN
+                ||event.getAction() == MotionEvent.ACTION_POINTER_DOWN) {
+            if(!PdAudio.isRunning())
+            {
+                PdAudio.startAudio(this);
+            }
+
             float x = event.getX() / scrSize.x;
             int y = (int) (100*(event.getY() / scrSize.y));//
-            Log.v("Sound", x + " " + y);
-
-//            PdBase.sendMessage("fr",Float.toString(1000*x+200));
-
-//            String harmonics = "";
-
-//            List<Object> harms = new ArrayList<Object>();
-//            for(int i = 1; i<=y; i++)
-//            {
-//                harms.add((float)(1.000/(float)i));
-////                harmonics = harmonics + Float.toString(((float)(1.000/(float)i)))+  " ";
-//
-//            }
-
-//            String sinesum = "sinesum 32768 "+ harmonics+", normalize 1";
-
-//            Log.v("Harmonics", harms.size() + "");
 
 
-
-            PdBase.sendFloat("tmb", y/20);// y/20 computes the corresponding timbre value
-
-//            OutputStreamWriter osw;
-//            BufferedWriter out;
-
-
-//
-//            try {
-//                osw = new OutputStreamWriter(timbre.getOutputStream());
-//                out = new BufferedWriter(osw);
-//                out.write(sinesum);
-//                out.newLine();
-//                out.flush();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
+            PdBase.sendFloat("tmb", (y/5)+1);// y/20 computes the corresponding timbre value
 
 
 
 
-            PdBase.sendFloat("fr", 1000 * x + 200);//Send frequency to pd patch
+            PdBase.sendFloat("fr", 500 * x + 200);//Send frequency to pd patch
 
 
-
-
-
-//            String sinesum = "sinesum 32768 "+ harmonics+", normalize 1";
 
 
 
@@ -190,7 +193,15 @@ public class MainActivity extends Activity {
         }
         if(event.getAction()==MotionEvent.ACTION_UP)
         {
+
             PdBase.sendFloat("fr", 0);
+
+
+            if(PdAudio.isRunning())
+            {
+                PdAudio.stopAudio();
+            }
+//            PdBase.sendFloat("fr", 0);
 
             return true;
         }
