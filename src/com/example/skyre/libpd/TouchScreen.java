@@ -1,9 +1,8 @@
-package com.skyre.guitar;
+package com.example.skyre.libpd;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
-
-import javax.microedition.khronos.opengles.GL10;
+import com.example.skyre.libpd.GtRenderer;
 
 /**
  * Created by Avtopalm on 07.06.2016.

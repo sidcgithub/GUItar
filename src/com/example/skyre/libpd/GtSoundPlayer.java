@@ -1,4 +1,4 @@
-package com.skyre.guitar;
+package com.example.skyre.libpd;
 
 import android.app.Activity;
 import android.content.Context;
@@ -6,6 +6,7 @@ import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Build;
+import com.skyre.guitar.R;
 
 /**
  * Created by Avtopalm on 08.06.2016.

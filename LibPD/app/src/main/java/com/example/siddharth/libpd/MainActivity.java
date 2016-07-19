@@ -1,18 +1,9 @@
 package com.example.siddharth.libpd;
 
-import android.content.Intent;
-import android.net.Uri;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
-import android.widget.CompoundButton;
-import android.widget.SeekBar;
-import android.widget.TextView;
-import android.widget.ToggleButton;
+import android.widget.*;
 
 import org.puredata.android.io.AudioParameters;
 import org.puredata.android.io.PdAudio;
@@ -20,21 +11,15 @@ import org.puredata.android.utils.PdUiDispatcher;
 import org.puredata.core.PdBase;
 import org.puredata.core.utils.IoUtils;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 
 import android.app.Activity;
 import android.graphics.Point;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
-import android.view.MotionEvent;
-import android.view.View;
 
 
 /**
@@ -47,6 +32,10 @@ public class MainActivity extends Activity {
     private GtSoundPlayer sPlayer;
     private Display display;
     private Point scrSize;
+
+    private ArrayList<CuePoint> cuePoints;
+
+    private boolean addNoteMode;
 
     public static Socket timbre ;
 
@@ -106,15 +95,17 @@ public class MainActivity extends Activity {
 //        }.start();
 
         //LayoutInflater linf = new getLayoutInflater();
-        //setContentView(R.layout.main);
-        tScr = new TouchScreen(this);
+        setContentView(R.layout.activity_main);
+        //tScr = new TouchScreen(this);
         display = getWindowManager().getDefaultDisplay();
-        scrSize = new Point();
+        this.scrSize = new Point();
         display.getSize(scrSize);
-        //tScr.setZOrderOnTop(true);
-        setContentView(tScr);
 
-        //addContentView(tScr, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
+        cuePoints = new ArrayList<CuePoint>();
+        //tScr.setZOrderOnTop(true);
+        //setContentView(tScr);
+
+        addNoteMode = false;
     }
 
     @Override
@@ -131,10 +122,66 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        if (event.getAction() == MotionEvent.ACTION_MOVE || event.getAction() == MotionEvent.ACTION_DOWN) {
-            float x = event.getX() / scrSize.x;
-            int y = (int) (100*(event.getY() / scrSize.y));//
-            Log.v("Sound", x + " " + y);
+
+        CuePoint testPoint = new CuePoint(event.getX(), event.getY(), this.scrSize);
+        // Mode "add note" is active
+        if (addNoteMode) {
+            CuePoint newPoint = new CuePoint(event.getX(), event.getY(), this.scrSize);
+            cuePoints.add(newPoint);
+            return true;
+        }
+        // Mode "add note" is not active
+        else {
+            if (event.getAction() == MotionEvent.ACTION_MOVE || event.getAction() == MotionEvent.ACTION_DOWN) {
+
+                //boolean inMarkedArea = false;
+
+                CuePoint currentPoint;
+                if (cuePoints.size() == 0) {
+                    currentPoint = new CuePoint(0, 0, this.scrSize);
+                }
+
+                // Check if touch is in the marked area
+                for (int i = 0; i < cuePoints.size(); i++) {
+
+                    // Touch in marked area
+                    if (cuePoints.get(i).areaIncludes(event.getX(), event.getY())) {
+                        //inMarkedArea = true;
+                        currentPoint = cuePoints.get(i);
+                        return inMarked(event, currentPoint);
+                    }
+                }
+
+                return outOfMarked(event);
+
+            }
+
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                PdBase.sendFloat("fr", 0);
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private boolean inMarked(final MotionEvent event, CuePoint point) {
+
+        PdBase.sendFloat("tmb", point.tmb);
+
+        PdBase.sendFloat("fr", point.freq);
+
+        Log.v("Sound", "Precise note is applied");
+
+        return true;
+    }
+
+    private boolean outOfMarked(final MotionEvent event) {
+
+        //Relative position of the touch
+        float x = event.getX() / scrSize.x;
+        int y = (int) (100*(event.getY() / scrSize.y));
+
+        Log.v("Sound", x + " " + y);
 
 //            PdBase.sendMessage("fr",Float.toString(1000*x+200));
 
@@ -152,9 +199,7 @@ public class MainActivity extends Activity {
 
 //            Log.v("Harmonics", harms.size() + "");
 
-
-
-            PdBase.sendFloat("tmb", y/20);// y/20 computes the corresponding timbre value
+        PdBase.sendFloat("tmb", y/20); // y/20 computes the corresponding timbre value
 
 //            OutputStreamWriter osw;
 //            BufferedWriter out;
@@ -174,7 +219,7 @@ public class MainActivity extends Activity {
 
 
 
-            PdBase.sendFloat("fr", 1000 * x + 200);//Send frequency to pd patch
+        PdBase.sendFloat("fr", 1000 * x + 200); //Send frequency to pd patch
 
 
 
@@ -186,15 +231,21 @@ public class MainActivity extends Activity {
 
 
 
-            return true;
-        }
-        if(event.getAction()==MotionEvent.ACTION_UP)
-        {
-            PdBase.sendFloat("fr", 0);
+        return true;
+    }
 
-            return true;
+    public void onCheckboxClick(View view) {
+
+        CheckBox check = (CheckBox)view;
+
+        if (check.isChecked()) {
+            this.addNoteMode = true;
+            Log.v("Checkbox", "Checkbox is checked");
         }
-        return false;
+        else {
+            this.addNoteMode = false;
+            Log.v("Checkbox", "Checkbox is checked");
+        }
     }
 
 

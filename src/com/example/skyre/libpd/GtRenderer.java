@@ -1,4 +1,4 @@
-package com.skyre.guitar;
+package com.example.skyre.libpd;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
